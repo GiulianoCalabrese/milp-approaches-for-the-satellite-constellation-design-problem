@@ -1,6 +1,8 @@
 # MILP Approaches for the Satellite Constellation Design Problem
 
 Code giving results from the paper with the same title.
+You need install library JuMP,Cbc and SatelliteToolbox
+You need launch with Julia the Keplerian file and for validate the results you use the Validation code.
 
 ## Getting started
 
