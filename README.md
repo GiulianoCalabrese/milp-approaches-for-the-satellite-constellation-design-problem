@@ -4,9 +4,12 @@ Code giving results from the paper with the same title.
 
 ## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Abstract In this paper, we propose mathematical optimization models to solve the satellite constellation design problem for discontinuous coverage. In
+such a design problem, the aim is to determine the minimal number of satellites (and, incidentally, their 3D placements) in order to observe a fixed Earth
+region within a given revisiting time. Two Mixed Integer Nonlinear formulations are introduced. The first one is a feasibility problem based on the direct
+mathematical definition of pixel observability. The second one consists in introducing a set of indicator variables which specify if a satellite observes a
+pixel at a given time-stamp. In order to obtain a linear problem, the possible positions of the satellites are discretized. Finally, computational results show
+the potential and limitations of the proposed approaches.
 
 ## Add your files
 
