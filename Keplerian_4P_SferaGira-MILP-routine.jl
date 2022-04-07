@@ -96,10 +96,7 @@ open(name_file, "w") do Output
 			write(Output,"NUM_SATELLITE : ", string(NUM_SATELLITE))
 			write(Output,"\n"," ")
 			
-			# write(Output," n_inclinaison : ",string(n_inclinaison)," n_noeudAscendant : ",string(n_noeudAscendant)," n_meanAnomaly  : ",string(n_meanAnomaly))
-			# write(Output,"\n"," ")
-			model = Model(CPLEX.Optimizer)
-			# set_optimizer_attribute(model, "CPX_PARAM_TILIM", 3600)
+			model = Model(cbc.Optimizer)
 
 			# Altitude de l'orbite [Km]
 			@variable(model, altitude[1:NUM_SATELLITE], start = AltitudeVariable)
@@ -150,7 +147,6 @@ open(name_file, "w") do Output
 			# Thetamax permet de déterminer la surface couverte par le satellite à partir du demi angle d'ouverture des capteurs, de l'altitude et de l'excentricité
 			@variable(model, Thetamax[1:NUM_SATELLITE])
 			@constraint(model, [i=1:NUM_SATELLITE], Thetamax[i] == sum(Theta[j]*activation_altitude[i,j] for j=1:length(altitudeSet)))
-			# @constraint(model, [i=1:NUM_SATELLITE], Thetamax[i] == (-alphaHalf + sum(activation_altitude[i,j]*asin(((RAYON+altitudeSet[j])/RAYON)*sin(alphaHalf)) for j=1:length(altitudeSet))))
 					
 			@variable(model, ThetaTargetLat[I=1:NUM_SATELLITE,j=1:NUM_PIXEL, p=1:NUM_TIME])
 			@constraint(model, [i=1:NUM_SATELLITE,j=1:NUM_PIXEL, p=1:NUM_TIME], ThetaTargetLat[i,j,p] == 
@@ -161,15 +157,7 @@ open(name_file, "w") do Output
 			@constraint(model, [i=1:NUM_SATELLITE,j=1:NUM_PIXEL, p=1:NUM_TIME], ThetaTargetLong[i,j,p] == 
 			sum(act4[i,a,k,l,s]*CoverageSatLong[j,p,k,l,s,a]
 			for s=1:n_inclinaison for l=1:n_noeudAscendant for k in 1:n_meanAnomaly for a=1:length(altitudeSet))) 
-
-			# @variable(model, binary_theta[1:NUM_SATELLITE, 1:NUM_PIXEL, 1:NUM_TIME], Bin)
-			# @constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], ThetaTargetLat[i,j,p] + binary_theta[i,j,p]*M_limit >= Thetamax[i] - Xi[i,p,j]*M_limit)
-			# @constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], -ThetaTargetLat[i,j,p] + (1-binary_theta[i,j,p])*M_limit >= Thetamax[i] - Xi[i,p,j]*M_limit)
-
-			# @variable(model, binary_thetaLong[1:NUM_SATELLITE, 1:NUM_PIXEL, 1:NUM_TIME], Bin)
-			# @constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], ThetaTargetLong[i,j,p] + binary_thetaLong[i,j,p]*M_limit >= Thetamax[i] - Xi[i,p,j]*M_limit)
-			# @constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], -ThetaTargetLong[i,j,p] + (1-binary_thetaLong[i,j,p])*M_limit >= Thetamax[i] - Xi[i,p,j]*M_limit)
-			
+		
 			@constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], Xi[i,p,j] => {-ThetaTargetLat[i,j,p] <= Thetamax[i]})
 			@constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], Xi[i,p,j] => {ThetaTargetLat[i,j,p] <= Thetamax[i]})
 			@constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], Xi[i,p,j] => {-ThetaTargetLong[i,j,p] <= Thetamax[i]})
@@ -201,13 +189,10 @@ open(name_file, "w") do Output
 				for i=1:NUM_SATELLITE
 					for j=1:NUM_PIXEL
 						for p=1:NUM_TIME
-							# if((((value.(model[:ThetaTargetLat])[i,j,p][1])) <= (value.(model[:Thetamax])[i][1])) && 
-								# (((value.(model[:ThetaTargetLong])[i,j,p][1])) <= (value.(model[:Thetamax])[i][1])))
 							if (((((value.(model[:Thetamax])[i][1]) >= (value.(model[:ThetaTargetLat])[i,j,p][1]))))
 							&& 
 							   (((value.(model[:Thetamax])[i][1]) >= (value.(model[:ThetaTargetLong])[i,j,p][1])) || ((value.(model[:Thetamax])[i][1]) >= abs(value.(model[:ThetaTargetLong])[i,j,p][1]-2*pi))))			
 								println("observing time (Theta): ",p*dt)
-								# println(value.(model[:activation_noeudAscendant]))
 							end
 							if(value.(model[:Xi])[i,p,j][1] > 0)
 								println("observing time (Xi): ",p*dt)
