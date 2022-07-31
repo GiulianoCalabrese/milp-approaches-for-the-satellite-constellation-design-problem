@@ -1,7 +1,7 @@
 using JuMP, CPLEX, Random
 include("Parameters.jl")
 include("Functions.jl")
-Random.seed!(1)
+# Random.seed!(1)
 
 global theta_min = ((2*pi*dt)/(2*PERIOD_SAT_MIN))*1.2
 global numbOfDiscretize = Int(ceil(pi/theta_min))
@@ -26,25 +26,39 @@ println(Theta*(180/pi))
 println(alphaHalf*(180/pi))
 println(name_file)
 
+global lat_temp = [80, 61, 33, 22, 16, 8, 1, -13, -15, -24, -31, -38, -53]*(pi/180)
+global long_temp = [358, 116, 139, 343, 340, 55, 220, 24, 100, 9, 152, 144, 46]*(pi/180)
+global ρ_temp = [6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6, 6.3781363e6]
+global instance = 0
+
 open(name_file, "w") do Output
 	for NUM_PIXEL in RANGE_NUM_PIXEL
 		println("Nombre cibles : ",NUM_PIXEL)
 	
 		# Obtenir coordonnées polaires des cartésiennes		
-		x,y,z = generateTargetsCartesians(NUM_PIXEL)
+		# x,y,z = generateTargetsCartesians(NUM_PIXEL)
 		
 		# Position pixel statique, référentiel ECEF
 		write(Output," coordonnées cibles : ")
 		ρ = Float64[]
 		lat = Float64[]
 		long = Float64[]
+		# for i in 1:NUM_PIXEL
+			# ρ_temp,colat_temp,long_temp = CartesianToPolar(x[i],y[i],z[i])
+			# append!(ρ,ρ_temp)
+			# append!(lat,pi/2-colat_temp)
+			# # longitude doit être comprise entre 0:2pi sinon incohérence avec formules Dominique
+			# append!(long,long_temp+pi)
+		# end
+
 		for i in 1:NUM_PIXEL
-			ρ_temp,colat_temp,long_temp = CartesianToPolar(x[i],y[i],z[i])
-			append!(ρ,ρ_temp)
-			append!(lat,pi/2-colat_temp)
-			# longitude doit être comprise entre 0:2pi sinon incohérence avec formules Dominique
-			append!(long,long_temp+pi)
-		end
+			append!(ρ,ρ_temp[i])
+			append!(lat,lat_temp[instance+i])
+			append!(long,long_temp[instance+i])
+		end	
+		
+		global instance += 1
+		
 		println([lat*(180/pi),long*(180/pi)])
 		write(Output," ρ : ",  string(ρ))
 		write(Output," lat : ",  string(lat*(180/pi)))
@@ -95,8 +109,8 @@ open(name_file, "w") do Output
 			println("Nombre Satellites : ",NUM_SATELLITE)
 			write(Output,"NUM_SATELLITE : ", string(NUM_SATELLITE))
 			write(Output,"\n"," ")
-			
-			model = Model(cbc.Optimizer)
+			model = Model(CPLEX.Optimizer)
+			# set_optimizer_attribute(model, "CPX_PARAM_TILIM", 3600)
 
 			# Altitude de l'orbite [Km]
 			@variable(model, altitude[1:NUM_SATELLITE], start = AltitudeVariable)
@@ -147,6 +161,7 @@ open(name_file, "w") do Output
 			# Thetamax permet de déterminer la surface couverte par le satellite à partir du demi angle d'ouverture des capteurs, de l'altitude et de l'excentricité
 			@variable(model, Thetamax[1:NUM_SATELLITE])
 			@constraint(model, [i=1:NUM_SATELLITE], Thetamax[i] == sum(Theta[j]*activation_altitude[i,j] for j=1:length(altitudeSet)))
+			# @constraint(model, [i=1:NUM_SATELLITE], Thetamax[i] == (-alphaHalf + sum(activation_altitude[i,j]*asin(((RAYON+altitudeSet[j])/RAYON)*sin(alphaHalf)) for j=1:length(altitudeSet))))
 					
 			@variable(model, ThetaTargetLat[I=1:NUM_SATELLITE,j=1:NUM_PIXEL, p=1:NUM_TIME])
 			@constraint(model, [i=1:NUM_SATELLITE,j=1:NUM_PIXEL, p=1:NUM_TIME], ThetaTargetLat[i,j,p] == 
@@ -157,7 +172,7 @@ open(name_file, "w") do Output
 			@constraint(model, [i=1:NUM_SATELLITE,j=1:NUM_PIXEL, p=1:NUM_TIME], ThetaTargetLong[i,j,p] == 
 			sum(act4[i,a,k,l,s]*CoverageSatLong[j,p,k,l,s,a]
 			for s=1:n_inclinaison for l=1:n_noeudAscendant for k in 1:n_meanAnomaly for a=1:length(altitudeSet))) 
-		
+
 			@constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], Xi[i,p,j] => {-ThetaTargetLat[i,j,p] <= Thetamax[i]})
 			@constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], Xi[i,p,j] => {ThetaTargetLat[i,j,p] <= Thetamax[i]})
 			@constraint(model, [p=1:NUM_TIME,j=1:NUM_PIXEL,i=1:NUM_SATELLITE], Xi[i,p,j] => {-ThetaTargetLong[i,j,p] <= Thetamax[i]})
@@ -191,7 +206,7 @@ open(name_file, "w") do Output
 						for p=1:NUM_TIME
 							if (((((value.(model[:Thetamax])[i][1]) >= (value.(model[:ThetaTargetLat])[i,j,p][1]))))
 							&& 
-							   (((value.(model[:Thetamax])[i][1]) >= (value.(model[:ThetaTargetLong])[i,j,p][1])) || ((value.(model[:Thetamax])[i][1]) >= abs(value.(model[:ThetaTargetLong])[i,j,p][1]-2*pi))))			
+							   ((value.(model[:Thetamax])[i][1]) >= (value.(model[:ThetaTargetLong])[i,j,p][1])) )			
 								println("observing time (Theta): ",p*dt)
 							end
 							if(value.(model[:Xi])[i,p,j][1] > 0)

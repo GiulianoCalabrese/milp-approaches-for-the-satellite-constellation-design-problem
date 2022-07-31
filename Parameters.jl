@@ -1,4 +1,4 @@
-using SatelliteToolbox
+﻿using SatelliteToolbox
 
 #################### LIST of PARAMETERS ######################
 
@@ -16,10 +16,10 @@ using SatelliteToolbox
 	# sideral time in seconds 23*3600 + 56*60 + 4
 
 # Temps max entre 2 revisite d'un point au sol par un satellite
-	global DELTA_T = 8.0*3600 # sec
+	global DELTA_T = 12.0*3600 # sec
 
 # Pas de temps de la simulation
-	global dt = 180.0# sec
+	global dt = 1800.0# sec
 
 # Standard gravitational parameter of the central body
 	const μ = 3.986004418e14 # [m^3/s^2]
@@ -37,7 +37,7 @@ using SatelliteToolbox
 	global we= 7.2921e-5
 
 # Nombre de points à observer sur la Terre (nous rappelons que la Terre est une sphère discrétisée)
-	global RANGE_NUM_PIXEL = 1*fill(1, 10)#1:2
+	global RANGE_NUM_PIXEL = 1:1#1*fill(1, 10)#1:2
 	
 # Obtention ensemble de valeurs admis pour hauteur satellite en fonction du nombre de N revolutions du satellite
 	N_test=1:24
@@ -61,9 +61,8 @@ using SatelliteToolbox
 
 	global Modele = Val(:twobody)
 	global color = ["brown","green","red","blue","violet","black"]
-	global M_limit = 3*pi
+	global M_limit = 2*pi
 	
-	global time_zero_simulation = DatetoJD(1970,1,1,0,0,0)
-	
+	global time_zero_simulation = DatetoJD(2000,1,1,12,0,0)#1970
 	
 

@@ -40,7 +40,7 @@ function generateTargetsCartesians(NUM_PIXEL)
 	local x = fill(0.0, NUM_PIXEL)
 	local y = fill(0.0, NUM_PIXEL)
 	local z = fill(0.0, NUM_PIXEL)
-
+    
 	# https://mathworld.wolfram.com/SpherePointPicking.html
 	for i in 1:NUM_PIXEL
 		phi  = 2. * pi * rand()
@@ -66,9 +66,9 @@ end
 
 # Position pixel en fonction du temps (inspiré de page Wiki https://fr.wikipedia.org/wiki/Coordonn%C3%A9es_sph%C3%A9riques)
 function TargetInTime(NUM_PIXEL,x,y,z)
-	global x_t = fill(0.0, NUM_PIXEL, NUM_TIME )
-	global y_t = fill(0.0, NUM_PIXEL, NUM_TIME)
-	global z_t = fill(0.0, NUM_PIXEL, NUM_TIME)
+	global x_t = fill(0.0, NUM_PIXEL, NUM_TIME+1)
+	global y_t = fill(0.0, NUM_PIXEL, NUM_TIME+1)
+	global z_t = fill(0.0, NUM_PIXEL, NUM_TIME+1)
 	for p in 1:NUM_TIME
 	# vit:(Rad/s * tps:s) #https://fr.wikipedia.org/wiki/Temps_sid%C3%A9ral
 		local dist_ang_pix = (2*pi/TEMPS_SIMU)*(p-1)*dt
@@ -148,53 +148,35 @@ function TargetSatPlot(numbOfDiscretize, j, k, l, s)
 	return x_projSat1,y_projSat1,z_projSat1
 end
 
+"""
+Renvoie l'angle dans ]-π, π] de la rotation entre le référentiel ECI et le référentiel ECEF
+au jour julien date. 
+"""
+function calcul_angle_ECI_ECEF(date::Real)
+   mat_ECI_ECEF = r_eci_to_ecef(TOD(), PEF(), date)
+   return atan(-mat_ECI_ECEF[2, 1], mat_ECI_ECEF[1, 1])
+end
+
 function ProjSatPlotPOLARDominique(Altezza, inclinaison, noeudAscendant, meanAnomaly)
 
-	LatitudeSat = fill(0.0,NUM_TIME)
-	LongitudeSat = fill(0.0,NUM_TIME)
-
-	# satPos_x = ((cos(noeudAscendant)*Altezza*cos(meanAnomaly)) 
-	# - (sin(noeudAscendant)*cos(inclinaison)*Altezza*sin(meanAnomaly)))
-	# satPos_y = ((sin(noeudAscendant)*Altezza*cos(meanAnomaly)) 
-	# + (cos(noeudAscendant)*cos(inclinaison)*Altezza*sin(meanAnomaly)))
-	# satPos_z = (sin(inclinaison)*Altezza*sin(meanAnomaly))
-	
-	# satVit_x = (-(cos(noeudAscendant)*sqrt(μ/(Altezza))*sin(meanAnomaly)) 
-	# - (sin(noeudAscendant)*cos(inclinaison)*sqrt(μ/(Altezza))*cos(meanAnomaly)))
-	# satVit_y = (-(sin(noeudAscendant)*sqrt(μ/(Altezza))*sin(meanAnomaly)) 
-	# + (cos(noeudAscendant)*cos(inclinaison)*sqrt(μ/(Altezza))*cos(meanAnomaly)))
-	# satVit_z = (sin(inclinaison)*sqrt(μ/(Altezza))*cos(meanAnomaly))
-
-	# PERIOD_SAT = 2*pi*sqrt(Altezza^3/μ)
-	# t_k = 2*pi/PERIOD_SAT #sqrt(μ/(Altezza[a]^3))
-
+	LatitudeSat = fill(0.0,NUM_TIME+1)
+	LongitudeSat = fill(0.0,NUM_TIME+1)
 	t_p = (sqrt(μ/(Altezza^3)))
 	t_u = sqrt(μ/(Altezza))
 	t_GM = sqrt(Altezza/μ)
 
-	for p in 1:NUM_TIME	
-		# LatitudeSat[p] = asin((satPos_z*cos(t_k*((p-1)*dt))/Altezza)
-		# + (satVit_z*sin(t_k*((p-1)*dt))*sqrt(Altezza/μ)))
+	for p in 1:(NUM_TIME+1)
 		
-		# LongitudeSat[p] = (((we*(((p-1)*dt) - DatetoJD(1970,1,1,0,0,0)))%(2*pi)) + 
-		# atan((satPos_y*cos(t_k*((p-1)*dt))/Altezza)
-		# + (satVit_y*sin(t_k*((p-1)*dt))*sqrt(Altezza/μ)),
-		# (satPos_x*cos(t_k*((p-1)*dt))/Altezza)
-		# + (satVit_x*sin(t_k*((p-1)*dt))*sqrt(Altezza/μ))))
-		
-		LatitudeSat[p] = asin(round(((sin(inclinaison)*Altezza*sin(meanAnomaly))*
-		cos(t_p*((p-1)*dt))/Altezza) 
-		+ ((sin(inclinaison)*t_u*cos(meanAnomaly))*sin(t_p*((p-1)*dt))*t_GM), digits=4))
+		LatitudeSat[p] = asin(round(((sin(inclinaison)*Altezza*sin(meanAnomaly))*cos(t_p*((p-1)*dt))/Altezza) 
+		+ ((sin(inclinaison)*t_u*cos(meanAnomaly))*sin(t_p*((p-1)*dt))*t_GM), digits=8))
 
-		LongitudeSat[p] = (((we*(((p-1)*dt) - time_zero_simulation))) + atan((((sin(noeudAscendant)*Altezza*cos(meanAnomaly)) 
-		+ (cos(noeudAscendant)*cos(inclinaison)*Altezza*sin(meanAnomaly)))*cos(t_p*((p-1)*dt))/Altezza)
-		+ ((-(sin(noeudAscendant)*t_u*sin(meanAnomaly)) 
-		+ (cos(noeudAscendant)*cos(inclinaison)*t_u*cos(meanAnomaly)))*sin(t_p*((p-1)*dt))
-		*t_GM),((((cos(noeudAscendant)*Altezza*cos(meanAnomaly)) 
-		- (sin(noeudAscendant)*cos(inclinaison)*Altezza*sin(meanAnomaly)))*
-		cos(t_p*((p-1)*dt))/Altezza)
-		+ ((-(cos(noeudAscendant)*t_u*sin(meanAnomaly))-(sin(noeudAscendant)*cos(inclinaison)*t_u*
-		cos(meanAnomaly)))*sin((t_p*((p-1)*dt)))*t_GM))))%(2*pi)
+		LongitudeSat[p] = (-(calcul_angle_ECI_ECEF(time_zero_simulation) + (we*((p-1)*dt))) + 
+		atan((((sin(noeudAscendant)*Altezza*cos(meanAnomaly)) + (cos(noeudAscendant)*cos(inclinaison)*
+		Altezza*sin(meanAnomaly)))*cos(t_p*((p-1)*dt))/Altezza)	+ ((-(sin(noeudAscendant)*t_u*sin(meanAnomaly))
+		+ (cos(noeudAscendant)*cos(inclinaison)*t_u*cos(meanAnomaly)))*sin(t_p*((p-1)*dt))*t_GM),
+		((((cos(noeudAscendant)*Altezza*cos(meanAnomaly)) - (sin(noeudAscendant)*cos(inclinaison)*
+		Altezza*sin(meanAnomaly)))* cos(t_p*((p-1)*dt))/Altezza) + ((-(cos(noeudAscendant)*t_u*sin(meanAnomaly))
+		-(sin(noeudAscendant)*cos(inclinaison)*t_u*cos(meanAnomaly)))*sin((t_p*((p-1)*dt)))*t_GM))))%(2*pi)
 		
 		if LongitudeSat[p] <= 0 
 			LongitudeSat[p] += 2*pi
@@ -206,7 +188,7 @@ end
 
 # Temps de passage
 function CountRevisitTime(TimeSeen_track)
-	for index_ville in RANGE_NUM_PIXEL
+	for index_ville in 1:size(TimeSeen_track)[1]
 		figure()
 		PyPlot.title("Target :"*string(index_ville))
 		PyPlot.xlabel("Time SIMULATION in seconds")
@@ -239,6 +221,9 @@ function CreateSfera(RAYON_sfera,x_init=0.0,y_init=0.0,z_init=0.0,N=32,colorSfer
 		PyPlot.plot(lunghezza_asse,zerozero, zerozero, color = "black",alpha=0.1)
 		PyPlot.plot(zerozero,lunghezza_asse, zerozero, color = "black",alpha=0.1)
 	end
+	PyPlot.xlabel("X (m)")
+	PyPlot.ylabel("Y (m)")
+	PyPlot.zlabel("Z (m)")
 end
 
 # Create Piano equatoriale
