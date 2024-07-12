@@ -4,7 +4,7 @@ Code giving results from the paper with the same title :
 
 Mencarelli, L., Floquet, J., Georges, F. et al. Mixed integer (non)linear approaches for the satellite constellation design problem. Optim Eng (2022). https://doi.org/10.1007/s11081-022-09774-9
 
-You need install library JuMP,Cbc and SatelliteToolbox
+You need install library JuMP, Cbc and SatelliteToolbox
 You need launch with Julia the Keplerian file and for validate the results you use the Validation code.
 
 ## Getting started
