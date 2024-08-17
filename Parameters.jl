@@ -19,7 +19,7 @@
 	global DELTA_T = 12.0*3600 # sec
 
 # Pas de temps de la simulation
-	global dt = 1800.0# sec
+	global dt = 180.0# sec
 
 # Standard gravitational parameter of the central body
 	const μ = 3.986004418e14 # [m^3/s^2]
@@ -63,6 +63,9 @@
 	global color = ["brown","green","red","blue","violet","black"]
 	global M_limit = 2*pi
 	
-	global time_zero_simulation = DatetoJD(2000,1,1,12,0,0)#1970
+	global time_zero_simulation = date_to_jd(2000,1,1,12,0,0)#1970 value: 2.451545e6
+
+	# println(time_zero_simulation)
+	# println(jd_to_date(time_zero_simulation))
 	
 
